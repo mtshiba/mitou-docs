@@ -1,0 +1,182 @@
+@require: mitou-detail
+@require: itemize
+@require: code-printer/code-printer
+@require: code-printer/code-syntax
+@require: code-printer/code-theme
+@require: enumitem/enumitem
+@require: figbox/figbox
+
+@import: util
+
+let-block +python code = '<+code-printer ?:(CodePrinter.make-config CodeSyntax.python CodeTheme.basic-dark)(code);>
+open EnumitemAlias
+open FigBox
+in
+document (|
+    project = {Pythonにトランスパイル可能な静的型付けプログラミング言語の開発};
+    subtitle = {Erg Programming Language};
+|) '<
+    +section{背景}<
+    +p{
+        \href(`https://python.org`){Python}は，産業用・教育用途を問わず世界中で幅広く利用されている汎用プログラミング言語である．
+        特に，機械学習やデータ分析の分野での利用が増加しており，その需要は今後も続くと予想される．
+    }
+    +p{
+        しかし，Pythonは実行時にコードの正当性を検証する動的型付け言語であるため，
+        静的型付け言語に比べてバグの発見が遅れ，開発効率が低下するという傾向がある．
+        また，Pythonはそのシェアの大きさにも関わらず，公式の提供する開発環境が不十分であるという問題もある．
+    }
+    +p{
+        動的型付け言語のデメリットを解消するべく，動的型付け言語に静的型システムを導入したプログラミング言語を開発するというプロジェクトがある．
+        代表的なものが\href(`https://typescriptlang.org`){TypeScript}である．
+        TypeScriptは近年大きな注目を集めており，Pythonに対して静的型システムを導入したプログラミング言語を開発することも潜在的に大きな需要があると考えられる．
+    }
+    +p{
+        Pythonをトランスパイル（変換）ターゲットとするプログラミング言語はいくつか存在するが，
+        その多くは動的型付け言語であり，Pythonの問題をそのまま引き継いでいる．
+        Pythonとの互換性を謳う静的型付け言語もあるが，Python APIの静的型付け化を指向しているとは言い難い．
+    }
+    +p{
+        Pythonには型アノーテーションの文法があるため，これを用いて擬似的に静的型付けを行おうとするプロジェクトもある．
+        しかし，Python自体が静的解析を考慮していない設計のため，このアプローチにも根本的な限界がある．
+    }
+    >
+    +section{目的}<
+    +p{
+        前章上で説明した問題を解決するために，本プロジェクトではPythonにトランスパイル可能な静的型付けプログラミング言語Ergをおよびその開発ツール群を開発する．
+        Erg言語はPythonにトランスパイルされるためPythonのコード資産をそのまま再利用でき，また静的型システムによる高い静的検証能力を持つ．
+        また開発ツール群をコマンド一つで呼び出せるようにすることで，低い環境構築コストと高い再現性を実現する．
+    }
+    >
+    +section{開発内容} <
+        +p{
+            Ergは以下の設計思想に基づいて設計されている．
+            \listing{
+                * 強い静的型付け
+                * ミニマルな基礎文法
+                * 高い表現能力
+                * Python APIとの互換性
+                * 高い開発効率
+            }
+            以上に基づき，コンパイラ，Language Server，パッケージマネージャ，インストーラ，パッケージレジストリ，パッケージレジストリサイトなどの開発を行った．
+        }
+        +subsection?:(`compiler`){コンパイラ}<
+        +p{
+            ErgコンパイラはRustで実装されており，MIT/Apache 2.0ライセンスで公開されている．
+            ErgコンパイラはErg言語のソースコードを解析・検査し，Pythonバイトコードに変換する（図１）．
+        }
+        +fig-center(
+            vconcat ?:align-center [
+            include-image 400pt `img/compiler_arch.jpg`;
+            gap 10pt;
+            textbox {図１: コンパイラの概説図};
+        ]);
+        +p{
+            コンパイルの各ステージで発生したエラーは収集され，一度にユーザーに報告される．
+            エラーは該当箇所のコードとともに提示され，エラーメッセージもユーザーにとって理解しやすいものとなるよう努めた．
+        }
+        >
+        +subsection{PythonパッケージとしてのErgコンパイラ}<
+        +p{
+            Ergコンパイラは，PythonパッケージとしてPythonインタプリタが動的に呼び出すこともできるようにした．
+            これにより，Ergモジュールを実行時に読み込んだり，ErgコードのASTを直接操作したりすることが可能になる．
+            APIの型定義も行ったので，ErgからErgコンパイラを操作することも可能である．
+        }
+        >
+        +subsection?:(`lang-server`){Language Server}<
+        +p{
+            Language Server（Erg Language Server）もRustで実装されており，コンパイラと同じライセンスで公開されている．
+            Language Serverとは，対象言語のコーディングを支援する機能（エラー表示，補完機能，定義ジャンプなど）をエディタに提供するためのソフトウェアである．
+            Language Server Protocol（LSP）と呼ばれるプロトコルに対応することでエディタとの通信を可能にする．
+        }
+        >
+        +subsection{パッケージマネージャ} <
+        +p{
+            パッケージマネージャ（開発コードネーム: poise）はErg自身を用いて実装し，コンパイラと同じライセンスで公開されている．
+            パッケージの作成・ビルド・テスト・公開・インストールなどパッケージ開発のライフサイクル全般を管理することができる．
+        }
+        >
+        +subsection{インストーラ}<
+        +p{
+            インストーラは，Erg言語のコンパイラ，パッケージマネージャ等を一括でインストールするためのスクリプトである．
+            インストール先コンピュータのアーキテクチャに適合するコンパイラのバイナリと標準ライブラリをGitHub releaseから取得する．
+            また，パッケージマネージャは，ソースコードを取得しコンパイルすることでインストールする．
+        }
+        >
+        +subsection{パッケージレジストリ}<
+        +p{
+            パッケージレジストリはコードホスティングサイトGitHubを用いて構築した．
+            パッケージマネージャは，パッケージレジストリのリポジトリへ圧縮されたパッケージをPull Requestとして送信し，
+            メンテナの確認ののちmergeすることでパッケージの登録を行う．
+        }
+        >
+        +subsection{パッケージレジストリサイト}<
+        +p{
+            パッケージレジストリに登録されたパッケージの情報を閲覧するためのウェブサイトを構築した（図２）．
+            このWebサイトは \href(`https://package.erg-lang.org`){https://package.erg-lang.org} で公開されており，
+            パッケージの検索やメタデータの閲覧が可能である．
+        }
+        +fig-center(
+            vconcat ?:align-center [
+            include-image 400pt `img/pkg_erglang_org.jpg`;
+            gap 10pt;
+            textbox {図２: パッケージレジストリサイトのスクリーンショット};
+        ]);
+        >
+        +subsection{著名なPythonパッケージの型定義パッケージ群}<
+        +p{
+            ErgコンパイラはPythonの組み込みAPIや標準ライブラリの型定義を同梱しているが，
+            サードパーティのPythonパッケージの型定義はErgパッケージとしてユーザーにオンデマンドで提供されるか，
+            ユーザー自身で型定義ファイルを記述する方式になっている．
+        }
+        +p{
+            このうち著名なサードパーティのPythonパッケージについては，型定義パッケージを用意しレジストリに登録した．
+            これらの型定義は\href(`https://github.com/erg-lang/pytypes`){pytypes}というリポジトリで管理されている．
+        }
+        >
+    >
+    +section{従来の技術（または機能）との相違}<
+    +p{
+        ErgはPythonにトランスパイル可能・あるいは互換性を持つとされる他の言語と比べ，完全に静的型付けであり，
+        Python APIの型定義を自前で行っている点が特徴である．
+        また，Ergの強力な型システムにより，Python APIはその使用感をほとんど損なわない形で型定義されている．
+        先行する\href(`https://hylang.org`){Hy}や\href(`https://coconut-lang.org`){Coconut}，\href(`https://julialang.org`){Julia}などの言語は動的型付けであり，本プロジェクトの解決したい問題に応えるものではない．
+        \href(`https://mojolang.org`){Mojo}は2023年に発表されたPythonとの互換性を謳う静的型付け言語であるが，実際のAPIはMojo独自のものが多く，また開発環境も整備されていない．
+    }
+    +p{
+        本プロジェクトではコンパイラ本体に加えて，Language Server，パッケージマネージャ，インストーラ，
+        パッケージレジストリ，パッケージレジストリサイトなどの周辺ツールも開発した．
+        Erg言語は単なる概念実証ではなく，実用言語としての基盤を持っていると言える．
+    }
+    >
+    +section{期待される効果}<
+    +p{
+        ソフトウェア開発においてPythonの代わりにErgを用いることで，Pythonのコード資産をそのまま再利用しつつ，
+        静的型付けによるバグの早期発見，そしてLanguage Serverによる豊富なコーディング支援を得ることができる．
+        標準で付属するパッケージマネージャはパッケージを開発・公開するに必要十分な機能を持っており，
+        開発者は環境の構築に時間を費やすことなく，簡単にパッケージを開発・公開することができる．
+    }
+    >
+    +section{普及（または活用）の見通し}<
+    +p{
+        ErgコンパイラのGitHubリポジトリは既にスター数が2500近くあり，多くのプログラマが興味を持っていることが伺える．
+        Erg言語はまだまだ発展途上であるものの，本プロジェクトの完遂によって実用言語としての基盤が整ったと言えるので，
+        ユーザー獲得へ向けて広報活動を実施していきたいと考える．
+        PythonやRustなどプログラミング言語系のコミュニティの主催するカンファレンスに参加して登壇したり，
+        ある程度Ergを学習したいというユーザーが集まればワークショップを開催などしたいと考えている．
+    }
+    >
+    +section{クリエータ名（所属）}<
+    +p{
+        芝山駿介（早稲田大学先進理工学部物理学科）
+    }
+    >
+    +section{関連URL}<
+    +listing{
+        * 公式サイト: \href(`https://erg-lang.org`){https://erg-lang.org}
+        * パッケージレジストリサイト: \href(`https://package.erg-lang.org`){https://package.erg-lang.org}
+        * GitHubリポジトリ: \href(`https://github.com/erg-lang/erg`){https://github.com/erg-lang/erg}
+        * 公式ドキュメント: \href(`https://erg-lang.org/the-erg-book/`){https://erg-lang.org/the-erg-book/}
+    }
+    >
+>

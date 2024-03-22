@@ -1,0 +1,25 @@
+@require: color
+
+let link-to-uri-frame uri borderopt =
+    let deco (x, y) w h d =
+        let () = register-link-to-uri uri (x, y) w h d borderopt in []
+    in
+        (deco, deco, deco, deco)
+
+let-inline ctx \href ?:borderopt uri inner =
+    let ctx = ctx |> set-text-color Color.blue in
+    let ib = read-inline ctx inner in
+    let ibL =
+        match get-leftmost-script ib with
+        | Some(scriptL) -> script-guard scriptL inline-nil
+        | None          -> inline-nil
+    in
+    let ibR =
+        match get-rightmost-script ib with
+        | Some(scriptR) -> script-guard scriptR inline-nil
+        | None          -> inline-nil
+    in
+    let ib-frame =
+        inline-frame-breakable (0pt, 0pt, 0pt, 0pt) (link-to-uri-frame uri borderopt) ib
+    in
+    ibL ++ ib-frame ++ ibR
