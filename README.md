@@ -6,7 +6,7 @@
 
 [プロジェクト概要(IPA公式サイト)](https://www.ipa.go.jp/jinzai/mitou/it/2023/gaiyou_tk-1.html)
 
-[成果発表(YouTube)](https://youtu.be/BwOl0uOX6XM?t=14306)
+[成果発表(YouTube)](https://www.youtube.com/watch?v=FXtZBt62yik&list=PLi57U_f9scILyBglYKcjixGLs-o0bshhD)
 
 [成果物](https://github.com/erg-lang/erg)
 
